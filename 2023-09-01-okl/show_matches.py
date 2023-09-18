@@ -1,8 +1,10 @@
 import pandas as pd
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem, MolStandardize
+from tqdm import tqdm
 
-# I think the log level is actually global across rdkit...
+# This is operating on the inchi module logger, but I think the log level is
+# actually global across rdkit...
 Chem.inchi.logger.setLevel(3)
 
 standardizer = MolStandardize.Standardizer()
@@ -10,6 +12,7 @@ remover = MolStandardize.fragment.FragmentRemover()
 
 def mol_from_smiles(smiles):
     mol = Chem.MolFromSmiles(smiles)
+    # Round-trip through InCHI to use their tautomer standardization rules.
     mol = Chem.MolFromInchi(Chem.MolToInchi(mol))
     mol = remover.remove(mol)
     mol = standardizer.standardize(mol)
@@ -18,39 +21,47 @@ def mol_from_smiles(smiles):
 def make_fingerprint(mol):
     return AllChem.GetMorganFingerprintAsBitVect(mol, 2)
 
-rt = pd.read_csv("rt-smallmolecules-20230908.csv")
-rt["Mol"] = rt["smiles"].map(mol_from_smiles)
-database = list(zip(rt["lincs_id"], rt["Mol"]))
+def similarity(fp1, fp2):
+    return DataStructs.FingerprintSimilarity(
+        fp1, fp2, DataStructs.TanimotoSimilarity
+    )
 
-q = pd.read_csv("OKL_Compounds_20230831_sde_out.csv")
-q["Mol"] = q["smiles"].map(mol_from_smiles)
-queries = list(q[["name", "Mol"]].to_records(index=False))
+rt = (
+    pd.read_csv("rt-smallmolecules-20230908.csv")
+    .set_index("lincs_id", verify_integrity=True)
+)
+tqdm.pandas(desc="Parse RT smiles")
+rt["Mol"] = rt["smiles"].progress_map(mol_from_smiles)
+rt["Fp"] = rt["Mol"].map(make_fingerprint)
 
-fps_db = [make_fingerprint(rec[1]) for rec in database]
-fps_q = [make_fingerprint(rec[1]) for rec in queries]
+lib = (
+    pd.read_csv("OKL_Compounds_20230831_sde_out.csv")
+    .set_index("name", verify_integrity=True)
+)
+tqdm.pandas(desc="Parse new library smiles")
+lib["Mol"] = lib["smiles"].progress_map(mol_from_smiles)
+lib["Fp"] = lib["Mol"].map(make_fingerprint)
 
-matches = []
-for fp1 in fps_q:
-    best_similarity = 0
-    best_names = []
-    for i, fp2 in enumerate(fps_db):
-        similarity = DataStructs.FingerprintSimilarity(
-            fp1, fp2, DataStructs.TanimotoSimilarity
-        )
-        if similarity > best_similarity:
-            best_similarity = similarity
-            best_names = [database[i][0]]
-        elif similarity == best_similarity:
-            best_names.append(database[i][0])
-    matches.append((best_names, best_similarity))
+sim = (
+    pd.merge(
+        rt["Fp"].reset_index(),
+        lib["Fp"].reset_index(),
+        how="cross",
+        suffixes=("_rt", "_lib"),
+    )
+    .set_index(["lincs_id", "name"])
+)
+sim["Similarity"] = sim.apply(
+    lambda x: similarity(x["Fp_rt"], x["Fp_lib"]), axis=1
+)
 
-results = pd.DataFrame({
-    "Query": [x[0] for x in queries],
-    "Matches": [",".join(x[0]) for x in matches],
-    "Similarity": [x[1] for x in matches],
-})
-m = results[results["Similarity"] > 0.9]
-if len(m):
-    print(m.to_string(index=False))
+matches = (
+    sim.loc[sim["Similarity"] > 0.9, "Similarity"]
+    .rename_axis(index={"name": "library match"})
+)
+print()
+if len(matches):
+    print("Matches found:\n")
+    print(matches.to_string())
 else:
     print("No matches found")
