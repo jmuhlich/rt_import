@@ -33,7 +33,7 @@ rt["Mol"] = rt["smiles"].progress_map(mol_from_smiles)
 rt["Fp"] = rt["Mol"].map(make_fingerprint)
 
 lib = (
-    pd.read_csv("OKL_Compounds_20230831_sde_out.csv")
+    pd.read_csv("OKL-v3-vendor-data.csv")
     .set_index("name", verify_integrity=True)
 )
 tqdm.pandas(desc="Parse new library smiles")
