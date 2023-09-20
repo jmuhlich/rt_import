@@ -7,13 +7,13 @@ RDLogger.DisableLog("rdApp.*")
 
 standardizer = MolStandardize.Standardizer()
 remover = MolStandardize.fragment.FragmentRemover()
+enumerator = MolStandardize.rdMolStandardize.TautomerEnumerator()
 
 def mol_from_smiles(smiles):
     mol = Chem.MolFromSmiles(smiles)
-    # Round-trip through InCHI to use their tautomer standardization rules.
-    mol = Chem.MolFromInchi(Chem.MolToInchi(mol))
     mol = remover.remove(mol)
     mol = standardizer.standardize(mol)
+    mol = enumerator.Canonicalize(mol)
     return mol
 
 def make_fingerprint(mol):
