@@ -1,11 +1,9 @@
 import pandas as pd
-from rdkit import Chem, DataStructs
+from rdkit import Chem, DataStructs, RDLogger
 from rdkit.Chem import AllChem, MolStandardize
 from tqdm import tqdm
 
-# This is operating on the inchi module logger, but I think the log level is
-# actually global across rdkit...
-Chem.inchi.logger.setLevel(3)
+RDLogger.DisableLog("rdApp.*")
 
 standardizer = MolStandardize.Standardizer()
 remover = MolStandardize.fragment.FragmentRemover()
