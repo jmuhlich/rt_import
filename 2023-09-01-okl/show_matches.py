@@ -25,7 +25,7 @@ def similarity(fp1, fp2):
     )
 
 rt = (
-    pd.read_csv("rt-smallmolecules-20230908.csv")
+    pd.read_csv("rt-smallmolecules-20230920.csv")
     .set_index("lincs_id", verify_integrity=True)
 )
 tqdm.pandas(desc="Parse RT smiles")
