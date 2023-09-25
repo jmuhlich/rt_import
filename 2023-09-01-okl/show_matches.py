@@ -8,6 +8,9 @@ RDLogger.DisableLog("rdApp.*")
 standardizer = MolStandardize.Standardizer()
 remover = MolStandardize.fragment.FragmentRemover()
 enumerator = MolStandardize.rdMolStandardize.TautomerEnumerator()
+enumerator.SetRemoveSp3Stereo(False)
+enumerator.SetRemoveBondStereo(False)
+
 
 def mol_from_smiles(smiles):
     mol = Chem.MolFromSmiles(smiles)
@@ -25,7 +28,7 @@ def similarity(fp1, fp2):
     )
 
 rt = (
-    pd.read_csv("rt-smallmolecules-20230920.csv")
+    pd.read_csv("rt-smallmolecules-20230922.csv")
     .set_index("lincs_id", verify_integrity=True)
 )
 tqdm.pandas(desc="Parse RT smiles")
