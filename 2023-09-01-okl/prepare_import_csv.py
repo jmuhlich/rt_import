@@ -10,8 +10,9 @@ c = df.loc[
     ~df["canonical_exists"],
     ["lincs_id", "name", "cas_number", "chembl_id", "smiles", "inchi", "inchi_key"]
 ].copy()
+c["loaded"] = ""
 c["type"] = "small_molecule"
-c["date_entered"] = "2023-09-25"
+c["date_entered"] = "2023-09-29"
 c["curated_by"] = "Jeremy Muhlich"
 c.to_csv("to_load_canonicals.csv", index=False)
 
@@ -22,6 +23,13 @@ b = df[[
     "provider_catalog_id",
     "provider_batch_id",
     "salt",
+    "order_amount",
+    "order_date",
+    "order_number",
+    "flag_for_aliquot",
+    "reserve_for_qc",
+    "admin_comments",
 ]].copy()
+b["loaded"] = ""
 b["type"] = "small_molecule_batch"
 b.to_csv("to_load_batches.csv", index=False)
