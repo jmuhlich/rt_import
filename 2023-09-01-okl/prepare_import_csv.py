@@ -23,13 +23,17 @@ b = df[[
     "provider_catalog_id",
     "provider_batch_id",
     "salt",
+    "molecular_weight",
     "order_amount",
     "order_date",
     "order_number",
+    "requestor_name",
     "flag_for_aliquot",
     "reserve_for_qc",
     "admin_comments",
 ]].copy()
 b["loaded"] = ""
 b["type"] = "small_molecule_batch"
+b["concentration"] = 10
+b["solvent"] = 35 # DMSO
 b.to_csv("to_load_batches.csv", index=False)
